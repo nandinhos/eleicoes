@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Portal de resultados eleitorais por região e categoria, com dados oficiais do TSE em tempo real.">
+  <title>ApuraBrasil — Resultados das Eleições</title>
+  <meta name="theme-color" content="#e9edf4" id="themeColor">
+<meta name="app-version" content="20261005-2101">
+  <script>try{if(localStorage.getItem('apurabrasil:theme')==='dark')document.documentElement.dataset.theme='dark';}catch(e){}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2300a859'/%3E%3Cpath d='M9 20.5 14 16l3.5 3.5L23 13' stroke='%23fff' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="./" aria-label="ApuraBrasil, início">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="26" height="26"><rect width="32" height="32" rx="7" fill="#00a859"/><path d="M9 20.5 14 16l3.5 3.5L23 13" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="brand-text">Apura<strong>Brasil</strong><small>resultados oficiais · TSE</small></span>
+      </a>
+      <div class="livebox">
+        <span id="liveBadge" class="live live-off" role="status">
+          <span class="live-dot" aria-hidden="true"></span><span id="liveLabel">conectando…</span>
+        </span>
+        <span id="clock" class="clock" aria-label="Horário atual">—</span>
+        <button id="btnTheme" class="iconbtn" type="button" aria-label="Alternar tema claro/escuro" title="Alternar tema claro/escuro">
+          <svg id="icoSun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" hidden><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
+          <svg id="icoMoon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.2A8 8 0 0 1 10.8 4 7 7 0 1 0 20 13.2z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel filters" aria-label="Filtros da apuração">
+      <div class="filter-row">
+        <div class="field">
+          <label for="selPleito">Eleição</label>
+          <select id="selPleito"></select>
+        </div>
+        <div class="field">
+          <label for="selEleicao">Disputa</label>
+          <select id="selEleicao"></select>
+        </div>
+        <div class="field grow">
+          <span class="label" id="cargoLabel">Categoria / cargo</span>
+          <div id="cargoTabs" class="tabs" role="tablist" aria-labelledby="cargoLabel"></div>
+        </div>
+      </div>
+      <div class="filter-row">
+        <div class="field">
+          <span class="label" id="regiaoLabel">Região</span>
+          <div id="regiaoChips" class="chips" role="group" aria-labelledby="regiaoLabel"></div>
+        </div>
+        <div class="field">
+          <span class="label" id="ufLabel">UF</span>
+          <div id="ufChips" class="chips chips-uf" role="group" aria-labelledby="ufLabel"></div>
+        </div>
+        <div class="field grow" id="munField" hidden>
+          <label for="selMunicipio">Município</label>
+          <input id="selMunicipio" list="munList" placeholder="Digite para buscar…" autocomplete="off">
+          <datalist id="munList"></datalist>
+        </div>
+      </div>
+      <div class="filter-foot">
+        <p id="scopeLine" class="scope">Carregando eleições…</p>
+        <div class="refresh">
+          <button id="btnRefresh" class="btn" type="button">Atualizar agora</button>
+          <label class="auto"><input id="chkAuto" type="checkbox" checked> auto <span id="countdown">60s</span></label>
+        </div>
+      </div>
+    </section>
+
+    <div class="viewtabs" role="tablist" aria-label="Visualização">
+      <button id="tabRanking" class="tab" role="tab" aria-selected="true" type="button">Ranking</button>
+      <button id="tabMapa" class="tab" role="tab" aria-selected="false" type="button">Mapa do Brasil</button>
+      <button id="tabProj" class="tab" role="tab" aria-selected="false" type="button">Projeções</button>
+      <button id="tabBusca" class="tab" role="tab" aria-selected="false" type="button">Buscar candidato</button>
+      <button id="tabCad" class="tab" role="tab" aria-selected="false" type="button">Cadeiras</button>
+      <button id="tabCol" class="tab" role="tab" aria-selected="false" type="button">Colégios</button>
+    </div>
+
+    <section id="statusBox" class="status" aria-live="polite" hidden></section>
+
+    <div class="race-layout">
+    <section id="kpiStrip" class="kpis" aria-label="Totais da apuração" hidden>
+      <div class="kpi" data-tone="ok">
+        <span class="kpi-t">Apuração</span>
+        <span class="kpi-v" id="kUrnas">—</span><span class="kpi-l">urnas apuradas</span>
+        <span class="kpi-bar"><span id="kUrnasBar"></span></span>
+        <div class="krow first"><span class="kpos">1º</span><b id="kCand1">—</b><span class="pctbadge gold mini" id="kCand1P">—</span></div>
+        <div class="krow-sub" id="kCand1V">—</div>
+        <div class="krow"><span class="kpos">2º</span><b id="kCand2">—</b><span class="pctbadge mini" id="kCand2P">—</span></div>
+        <div class="krow-sub" id="kCand2V">—</div>
+        <div class="kdiff" id="kGapWrap"><span class="kpi-v" id="kGap">—</span><span class="kpi-l">diferença 1º × 2º</span><span class="pctbadge gold mini" id="kGapSub">—</span></div>
+      </div>
+      <div class="kpi" title="Percentuais sobre o eleitorado">
+        <span class="kpi-t">Eleitorado</span>
+        <div class="kpi-note" id="kEleitNote" hidden>2 votos por eleitor — total e % sobre o dobro do eleitorado</div>
+        <div class="krow"><span class="kdot" data-tone="neutral"></span><span>Total</span><span class="krow-v" id="kEleitorado">—</span></div>
+        <div class="krow"><span class="kdot" data-tone="info"></span><span>Válidos</span><span class="krow-v"><span class="pctbadge mini" data-tone="info" id="kValidosP">—</span><span id="kValidos">—</span></span></div>
+        <div class="krow"><span class="kdot" data-tone="neutral"></span><span>Brancos</span><span class="krow-v"><span class="pctbadge mini" data-tone="neutral" id="kBrancosP">—</span><span id="kBrancos">—</span></span></div>
+        <div class="krow"><span class="kdot" data-tone="bad"></span><span>Nulos</span><span class="krow-v"><span class="pctbadge mini" data-tone="bad" id="kNulosP">—</span><span id="kNulos">—</span></span></div>
+        <div class="krow"><span class="kdot" data-tone="warn"></span><span>Abstenções</span><span class="krow-v"><span class="pctbadge mini" data-tone="warn" id="kAbsSub">—</span><span id="kAbs">—</span></span></div>
+      </div>
+    </section>
+
+    <section class="panel results" aria-label="Resultado">
+      <div class="results-head">
+        <div>
+          <h1 id="resTitle">—</h1>
+          <p id="resMeta" class="meta">—</p>
+        </div>
+        <div class="results-tools">
+          <span id="resBadge" class="badge" hidden></span>
+          <input id="q" class="search" type="search" placeholder="Filtrar candidato…" aria-label="Filtrar candidato" hidden>
+        </div>
+      </div>
+      <ol id="ranking" class="ranking"></ol>
+      <div id="moreWrap" class="more" hidden>
+        <button id="btnMore" class="btn ghost" type="button">Mostrar todos</button>
+      </div>
+    </section>
+    </div>
+
+    <section id="mapPanel" class="panel" aria-label="Mapa por UF" hidden>
+      <div class="results-head">
+        <div>
+          <h2 id="mapTitle">Mapa do Brasil</h2>
+        </div>
+      </div>
+      <div class="map-body">
+        <div>
+          <p id="mapMeta" class="meta">—</p>
+          <div id="mapLegend" class="legend"></div>
+          <div id="mapGrid" class="map-grid" role="group" aria-label="UFs"></div>
+          <div id="mapTip" class="maptip" role="status" hidden></div>
+          <p id="mapCaption" class="map-caption" aria-live="polite"></p>
+        </div>
+        <div class="map-table-wrap" id="mapTableWrap">
+          <table class="uftable">
+            <caption>Votos por estado — 1º × 2º e diferença</caption>
+            <thead><tr><th scope="col">Estado</th><th scope="col">Líder</th><th scope="col" class="ctr">%</th><th scope="col" class="num">Votos</th><th scope="col" class="num">Diferença</th><th scope="col" class="num" title="Urnas apuradas">Urnas</th></tr></thead>
+            <tbody id="ufTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <p id="mapHint" class="meta">Passe o mouse no mapa para detalhes · clique numa UF (mapa ou tabela) para ver o ranking.</p>
+    </section>
+
+    <section id="projPanel" class="panel" aria-label="Projeções" hidden>
+      <div class="results-head">
+        <div>
+          <h2 id="projTitle">Projeções</h2>
+          <p id="projMeta" class="meta">—</p>
+        </div>
+        <span id="projBadge" class="badge" hidden></span>
+      </div>
+      <div class="proj-layout">
+        <div>
+          <ol id="projChart" class="ranking proj"></ol>
+          <div id="viradaBox" class="virada" hidden></div>
+        </div>
+        <div class="prev-card">
+          <h3 class="prev-title">Eleição anterior × atual <small>(matemática pura)</small></h3>
+          <div class="table-wrap">
+            <table class="prev">
+              <thead><tr><th scope="col">Métrica</th><th scope="col" class="num" id="prevColAnt">Anterior</th><th scope="col" class="num" id="prevColAtu">Atual proj.</th><th scope="col" class="num">Δ</th></tr></thead>
+              <tbody id="prevBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <details class="metodo">
+        <summary>Metodologia</summary>
+        <p id="metodoText"></p>
+      </details>
+    </section>
+
+    <section id="buscaPanel" class="panel" aria-label="Busque seu candidato" hidden>
+      <div class="results-head">
+        <div>
+          <h2 id="buscaTitle">Busque seu candidato</h2>
+          <p id="buscaMeta" class="meta">—</p>
+        </div>
+      </div>
+      <div class="busca-bar">
+        <input id="qCand" class="busca-input" type="search" placeholder="Digite o nome ou número do candidato…" aria-label="Buscar candidato por nome ou número" autocomplete="off">
+      </div>
+      <p id="buscaHint" class="meta">Digite ao menos 2 letras. Clique num resultado para abrir a listagem oficial da disputa dele.</p>
+      <ol id="buscaResults" class="sres"></ol>
+      <p id="buscaFoot" class="meta busca-foot" aria-live="polite"></p>
+    </section>
+
+    <section id="cadPanel" class="panel" aria-label="Cadeiras" hidden>
+      <div class="results-head">
+        <div>
+          <h2 id="cadTitle">Cadeiras</h2>
+          <p id="cadMeta" class="meta">—</p>
+        </div>
+      </div>
+      <div class="cad-layout" id="cadLayout">
+      <aside class="kpis cad-side" aria-label="Composição ideológica">
+        <div class="kpi">
+          <span class="kpi-t">Por campo ideológico</span>
+          <div class="krow"><span class="kdot" data-tone="info"></span><span>Direita</span><span class="krow-v"><span class="pctbadge mini" data-tone="info" id="cadDirP">—</span><span id="cadDir">—</span></span></div>
+          <div class="krow"><span class="kdot" data-tone="neutral"></span><span>Centro</span><span class="krow-v"><span class="pctbadge mini" data-tone="neutral" id="cadCenP">—</span><span id="cadCen">—</span></span></div>
+          <div class="krow"><span class="kdot" data-tone="bad"></span><span>Esquerda</span><span class="krow-v"><span class="pctbadge mini" data-tone="bad" id="cadEsqP">—</span><span id="cadEsq">—</span></span></div>
+        </div>
+        <div class="kpi">
+          <span class="kpi-t">Por partido</span>
+          <div id="cadLegend" class="seat-vlegend"></div>
+        </div>
+      </aside>
+      <div class="cad-main">
+        <div id="hemiGrid" class="hemi-grid" role="group" aria-label="Hemiciclo de cadeiras"></div>
+        <div id="seatTip" class="maptip" role="status" hidden></div>
+        <div id="seatDetail" class="seat-detail" aria-live="polite">Passe o mouse ou toque numa cadeira para ver o eleito.</div>
+        <div class="more" id="seatDrillWrap" hidden>
+          <button id="btnSeatDrill" class="btn ghost" type="button">Ver no ranking</button>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <section id="eleitosPanel" class="panel" aria-label="Eleitos por município" hidden>
+      <div class="results-head">
+        <div>
+          <h2 id="eleitosTitle">Eleitos por município</h2>
+          <p id="eleitosMeta" class="meta">—</p>
+        </div>
+        <input id="qMun" class="search" type="search" placeholder="Filtrar município…" aria-label="Filtrar município">
+      </div>
+      <div class="table-wrap">
+        <table class="elected">
+          <thead><tr><th>Município</th><th>Eleito(a)</th><th>Partido</th><th class="num">Votos</th></tr></thead>
+          <tbody id="eleitosBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="colPanel" class="panel" aria-label="Colégios eleitorais" hidden>
+      <div class="results-head">
+        <div>
+          <h2 id="colTitle">Colégios eleitorais</h2>
+          <p id="colMeta" class="meta">—</p>
+        </div>
+      </div>
+      <div class="col-layout" id="colLayout">
+        <div class="vs-card" id="vsCard" hidden>
+          <div class="vs-head">
+            <div class="vs-side" id="vsHeadA"></div>
+            <div class="vs-x">VS</div>
+            <div class="vs-side" id="vsHeadB"></div>
+          </div>
+          <ol id="vsRows" class="vs-rows"></ol>
+        </div>
+        <div class="table-wrap col-table-wrap">
+          <table class="uftable">
+            <caption>Eleitorado por UF — total, válidos, brancos, nulos e abstenções</caption>
+            <thead><tr><th scope="col">Colégio</th><th scope="col" class="num">Total</th><th scope="col" class="num">Válidos</th><th scope="col" class="num">Brancos</th><th scope="col" class="num">Nulos</th><th scope="col" class="num">Abstenções</th></tr></thead>
+            <tbody id="colTableBody"></tbody>
+            <tfoot id="colTableFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+      <p id="colHint" class="meta">Colégio = unidade da Federação · clique numa linha para ver o ranking da UF.</p>
+    </section>
+
+    <footer class="foot">
+      <p>Fonte: <a href="https://resultados.tse.jus.br/oficial/app/index.html" target="_blank" rel="noopener">resultados.tse.jus.br</a> (dados oficiais do TSE, atualizados a cada apuração).
+        Este portal apenas reorganiza os dados públicos por região e categoria.
+        O campo entre parênteses (esquerda/centro/direita) é uma classificação editorial simplificada por partido.</p>
+      <p class="dev">Desenvolvido por - Nando DEV - 2026 · <span id="appVer" title="Versão do portal">…</span></p>
+    </footer>
+  </main>
+
+  <div id="updateBar" class="updatebar" role="alert" hidden><span>Nova versão disponível</span><button id="btnUpdate" type="button">Atualizar agora</button></div>
+
+  <noscript>
+    <p style="margin:18px auto;padding:0 12px;color:var(--gold-strong)">Ative o JavaScript para ver a apuração.</p>
+  </noscript>
+  <script>
+    // Detector de boot (script clássico): se o módulo não executar (ex.: página
+    // aberta por duplo-clique em vez de http), avisa em vez de travar mudo.
+    setTimeout(function () {
+      if (window.__apuraBoot) return;
+      var box = document.getElementById('statusBox');
+      box.hidden = false;
+      box.className = 'status error';
+      box.textContent = 'O app não iniciou neste endereço. Rode "python3 server.py" na pasta do projeto e abra http://127.0.0.1:8000/ no navegador (não abra o arquivo por duplo-clique). Detalhe técnico: console do navegador (F12).';
+      document.getElementById('liveLabel').textContent = 'não iniciado';
+      document.getElementById('scopeLine').textContent = 'Inicialização falhou — veja o aviso acima.';
+    }, 4000);
+    window.addEventListener('error', function (ev) {
+      if (window.__apuraBoot) return;
+      var t = ev.target;
+      if (t && (t.tagName === 'SCRIPT') && t.src) {
+        var box = document.getElementById('statusBox');
+        box.hidden = false;
+        box.className = 'status error';
+        box.textContent = 'Falha ao carregar ' + t.src + '. Confira se o servidor está rodando na pasta do projeto.';
+      }
+    }, true);
+  </script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
