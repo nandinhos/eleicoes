@@ -1,0 +1,10 @@
+# Gerado por deploy — nunca commitar
+version.json
+
+# Sistema e editores
+.DS_Store
+Thumbs.db
+*~
+*.swp
+.idea/
+.vscode/
